@@ -1,49 +1,44 @@
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
+require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors()); // Permitir solicitudes desde cualquier origen
+app.use(express.json()); // Para parsear JSON
 
-// Ruta para manejar el envío de correos
-app.post('/enviar-correo', async (req, res) => {
+app.post('/enviar-correo', (req, res) => {
   const { nombre, apellido, telefono, correo } = req.body;
 
-  // Validación simple de los datos recibidos
   if (!nombre || !apellido || !telefono || !correo) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
+    return res.status(400).send('Todos los campos son obligatorios');
   }
 
-  // Configuración del transporte de correo (usa tus credenciales reales)
   const transporter = nodemailer.createTransport({
-    service: 'gmail', // O 'Outlook' si prefieres usar Outlook
+    service: 'gmail',
     auth: {
-      user: process.env.CORREO_USUARIO, // Debes tener esta variable en tu configuración de entorno
-      pass: process.env.CORREO_PASS,    // Contraseña o app password
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
     },
   });
 
   const mailOptions = {
-    from: process.env.CORREO_USUARIO,
-    to: 'csdesign26@gmail.com', // Cambia esto por el correo al que quieres enviar la solicitud
-    subject: 'Nueva solicitud de adopción',
+    from: process.env.EMAIL_USER,
+    to: correo,
+    subject: 'Solicitud de Adopción',
     text: `Nombre: ${nombre}\nApellido: ${apellido}\nTeléfono: ${telefono}\nCorreo: ${correo}`,
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    res.status(200).json({ message: 'Correo enviado con éxito' });
-  } catch (error) {
-    console.error('Error al enviar el correo:', error);
-    res.status(500).json({ error: 'Hubo un problema al enviar el correo.' });
-  }
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      return res.status(500).send('Error al enviar el correo');
+    }
+    res.status(200).send('Correo enviado exitosamente');
+  });
 });
 
-// Iniciar el servidor
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
+app.listen(port, () => {
+  console.log(`Servidor corriendo en el puerto ${port}`);
 });
